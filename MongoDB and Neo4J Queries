@@ -1,0 +1,80 @@
+1. For Query will place the request sent by the Reader or the Author to Pub_request collection, 
+the status of all the requests will be “Pending” before the reviewer approves or rejects the request
+
+db.Pub_request.insert
+({
+    Name:"Book of light",
+    Author:"james",
+    ModifiedAuth:"",
+    Pages:"120",
+    language:"english",
+    Description:"joy of life",
+    Category:"fiction"
+})
+   
+db.Pub_request.update
+({},
+  {$set:{"Status":"Pending"}},
+  {upsert:false,multi:true}
+)
+
+
+2. Reviewer checks for the requests and examines them, also will set the status to Accepted or Rejected 
+based on the books he needs from his publication and the response will be sent to Pub_history collection.
+
+db.Pub_request.update(
+  {"Name":"Book of light"},
+  {$set: {Status: "Accepted"}
+})
+
+db.Pub_history.save(
+  db.Pub_request.find(
+    {Status:"Accepted"}).toArray()
+)
+
+
+3. When a book is Accepted and Published, all the necessary details like ISBN, Price,
+Edition will be included by the Publication house and will be sent to eBooks collection where the Reader, once he logs in, can view it.
+
+db.Pub_history.update(
+  {Name:"Book of light"},
+  {$set:{  
+        "ISBN13":"9857362873298",
+        "Publisher":"EbookHouse",
+        "Month":"6",
+        "Year":"2020",
+        "Edition":"1",
+        "Price":"35",
+        "Actype":"2"}},
+{upsert:false,multi:true})
+
+db.eBooks.save(db.Pub_history.find(
+    {Name:"Book of light"}.toArray())
+    
+    
+4. Query will show the Book Published by the Publication House
+
+merge (B:eBooks{eBName:"Book of light"} )
+merge (P:Publisher{PName:"eBookHouse"} )
+create (P)-[:PUBLISHED]->(B)
+
+
+5. Query shows the category of the book.
+
+merge (eB:eBooks{eBName:"Book of light"} )
+merge (C:Catogery{Catname:"Fiction"} )
+create (eB)-[:HAVING_CATEGORY]->(C)
+
+
+6. Query shows the Book written by the Author.
+
+merge (eB:eBooks{eBName:"Book of light"} )
+merge (Au:Autname{AuName:"Jameson"} )
+create (Au)-[:WROTE]->(eB)
+
+
+7. Query shows the Language of the Book.
+
+merge (eB:eBooks{eBName:"Book of light"} )
+merge (L:Language{LName:"English"} )
+create (eB)-[:Language]->(L)
